@@ -1,5 +1,16 @@
-"""Example program to demonstrate how to read a multi-channel time-series
-from LSL in a chunk-by-chunk manner (which is more efficient)."""
+'''
+Name: Recording 
+Author: Chase Carthen
+Description: A webservice that records any lsl streams coming. It is intended to be used for emotivs eeg headsets.
+    This webservice will also allow the user to add "events" that could represent different phases of eeg recording.
+    These events can be tracked against the lsl streams by mapping the time recorded in the streams and time in the events csv.
+How to Use:
+    first put a get request to: localhost:5000/start/<yourfilename>
+    -- now some files will be created for any lsl stream that is streaming the system locally --
+    second to add events send a get request to: localhost:5000/addevent/<your integer id>
+    third to stop send a get request to localhost:5000/stop
+Cite: https://github.com/chkothe/pylsl 
+'''
 
 import datetime
 from pylsl import StreamInlet, resolve_stream
@@ -16,7 +27,6 @@ import signal
 def handler(signal, frame):
   global recording 
   recording = False
-  print('CTRL-C pressed! haha')
   sleep(2)
   sys.exit(0)
 signal.signal(signal.SIGINT, handler)
