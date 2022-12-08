@@ -16,6 +16,7 @@ import datetime
 from pylsl import StreamInlet, resolve_stream
 import xmltodict
 import json
+import pprint
 from flask import Flask
 import threading
 from time import sleep
@@ -61,13 +62,22 @@ def recordFile(filename):
     
     threads = []
 
+    # OpenBCI EEG electrode cap
     for stream in streams:
-        threads.append(threading.Thread(target=writeStream, args=(splitext(filename)[0] + stream.name() + '.csv', stream)))
-        #inlet = StreamInlet(stream)
-        #inlets.append(inlet)
-        #convertedDictionary = xmltodict.parse(inlet.info().as_xml())
-        #names = [channel['label'] for channel in convertedDictionary['info']['desc']['channels']['channel'] ] 
-        #channelNames += names
+        inlet = StreamInlet(stream)
+        convertedDictionary = xmltodict.parse(inlet.info().as_xml())
+        # OpenBCI EEG stream
+        if (convertedDictionary['info']['name'] == 'openbci_eeg'):
+            threads.append(threading.Thread(target=writeStream, args=(splitext(filename)[0] + stream.name() + '.csv', stream)))
+        # OpenBCI Aux stream
+        elif (convertedDictionary['info']['name'] == 'openbci_aux'):
+            pass
+    # EMOTIV EPOC X
+        else:
+            print(convertedDictionary['info']['name']) # I want to know the stream name for the epoc x but I can't test it on my pc
+            threads.append(threading.Thread(target=writeStream, args=(splitext(filename)[0] + stream.name() + '.csv', stream)))
+            # pp = pprint.PrettyPrinter(compact=True)
+            # pp.pprint(convertedDictionary)
     threads.append(threading.Thread(target=writeEvents, args=(splitext(filename)[0] + 'Events' + '.csv',)))
     for thread in threads:
         thread.start()
@@ -83,6 +93,9 @@ def writeStream(filename, stream):
     fileHandle = open(filename,'w')
 
     convertedDictionary = xmltodict.parse(inlet.info().as_xml())
+    #pp = pprint.PrettyPrinter(compact=True)
+    #pp.pprint(convertedDictionary)
+    #return
     names = [channel['label'] for channel in convertedDictionary['info']['desc']['channels']['channel'] ] + ['Written Timestamp']
     fileHandle.write(str(names)[1:-1].replace(' ','')+'\n')
 
@@ -98,7 +111,6 @@ def writeStream(filename, stream):
         #print((datetime.datetime.now() - past).total_seconds())
 
 def writeEvents(eventFilename):
-    print('here')
     eventFileHandle = open(eventFilename, 'w')
     eventFileHandle.write('timestamp,event_id\n')
     while recording or not events.empty():
